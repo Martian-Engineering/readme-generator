@@ -27,21 +27,31 @@ class EnhancedREADMEGenerator(dspy.Signature):
 **Task**  
 Generate a crisp, well-structured `README.md` for the folder described below.
 
+**CRITICAL REQUIREMENT - PRESERVE EXISTING CONTENT**
+If an existing README is provided, you MUST:
+- PRESERVE ALL existing information, details, explanations, and content
+- NEVER remove, omit, or lose any information from the existing README
+- You may reorganize, reformat, and improve the structure and clarity
+- You may add new sections and information based on code analysis
+- Merge existing content with new analysis seamlessly
+- If existing content conflicts with code analysis, include both perspectives
+
 **What to include**
 
-1. **Project title & one-sentence tagline** – infer from folder name or main file.  
-2. **Overview** – 1-2 short paragraphs explaining what the project is, why it exists, and the core problem it solves.  
-3. **Badges** – leave placeholders (build status, license, etc.).  
+1. **Project title & one-sentence tagline** – infer from folder name, main file, or existing README.  
+2. **Overview** – 1-2 short paragraphs explaining what the project is, why it exists, and the core problem it solves. MERGE with existing overview if present.  
+3. **Badges** – preserve existing badges and add placeholders for missing ones.  
 4. **Table of Contents** – generate only if the README will have four or more second-level headings.  
-5. **Features / key components** – 3-7 concise bullet points.  
+5. **Features / key components** – 3-7 concise bullet points. MERGE with existing features.  
 6. **Quick start**  
-   * *Prerequisites* (languages, runtimes, package managers).  
-   * *Installation* (clone, install, build/run).  
-7. **Usage examples** – at least one minimal CLI or code snippet.  
-8. **Folder / file overview** – one-line purpose for each top-level item.  
-9. **Contributing** – standard fork/branch/PR flow with placeholder links.  
-10. **License** – detect license file; if none, insert "License TBD".  
-11. **Acknowledgements / references** – leave empty section if nothing obvious.
+   * *Prerequisites* (languages, runtimes, package managers). PRESERVE existing prerequisites.  
+   * *Installation* (clone, install, build/run). PRESERVE existing installation steps.  
+7. **Usage examples** – at least one minimal CLI or code snippet. PRESERVE all existing examples.  
+8. **Folder / file overview** – one-line purpose for each top-level item. MERGE with existing descriptions.  
+9. **Contributing** – standard fork/branch/PR flow. PRESERVE existing contribution guidelines.  
+10. **License** – detect license file or PRESERVE existing license information.  
+11. **Acknowledgements / references** – PRESERVE all existing acknowledgements and references.  
+12. **Any existing sections** – PRESERVE all custom sections, configuration details, deployment instructions, etc.
 
 **Formatting rules**
 
@@ -50,15 +60,17 @@ Generate a crisp, well-structured `README.md` for the folder described below.
 * Consistent heading levels (`#`, `##`, `###`).  
 * Wrap lines at ≤ 100 chars.  
 * Be succinct; avoid filler words.
+* PRESERVE formatting of existing code examples and structured content.
 
 **Output**  
 Return only the completed `README.md` content—no extra commentary, no outer markdown fences."""
     
     folder_tree: str = dspy.InputField(desc="Complete folder structure showing all files and subfolders")
     folder_name: str = dspy.InputField(desc="Name of the folder being analyzed")
+    existing_readme: str = dspy.InputField(desc="Existing README content to preserve and incorporate (empty if no existing README)")
     subfolder_readmes: str = dspy.InputField(desc="Content from README files of subfolders for context")
     
-    readme_content: str = dspy.OutputField(desc="Complete README.md content following technical writing best practices")
+    readme_content: str = dspy.OutputField(desc="Complete README.md content preserving all existing information while adding new insights")
 
 
 class READMEModule(dspy.Module):
@@ -72,6 +84,16 @@ class READMEModule(dspy.Module):
         # Generate folder tree structure
         folder_tree = self._generate_folder_tree(folder_path)
         
+        # Read existing README if it exists
+        existing_readme = ""
+        readme_path = folder_path / "README.md"
+        if readme_path.exists():
+            try:
+                existing_readme = readme_path.read_text(encoding='utf-8')
+                print(f"  Found existing README, preserving {len(existing_readme)} characters of content")
+            except Exception as e:
+                print(f"  Warning: Could not read existing README: {e}")
+        
         # Prepare subfolder README content for context
         subfolder_content = ""
         if subfolder_readmes:
@@ -84,6 +106,7 @@ class READMEModule(dspy.Module):
         readme = self.generate_readme(
             folder_tree=folder_tree,
             folder_name=folder_path.name,
+            existing_readme=existing_readme,
             subfolder_readmes=subfolder_content
         )
         
@@ -231,10 +254,21 @@ def load_existing_readmes(folder_path: Path) -> Dict[str, str]:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate README.md files for source folders using DSPy")
+    parser = argparse.ArgumentParser(
+        description="Generate README.md files for source folders using DSPy",
+        epilog="""
+Behavior with existing READMEs:
+- Existing README content is preserved and incorporated
+- No information is lost during the update process
+- Content is reorganized and enhanced with new analysis
+- Backup files (README.md.backup) are created before updates
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("folder", help="Root folder to process")
     parser.add_argument("--model", default="gpt-3.5-turbo", help="LLM model to use")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be done without writing files")
+    parser.add_argument("--no-backup", action="store_true", help="Skip creating backup files when updating existing READMEs")
     
     args = parser.parse_args()
     
@@ -286,11 +320,24 @@ def main():
             readme_path = folder_path / "README.md"
             
             if args.dry_run:
-                print(f"  Would write: {readme_path}")
+                action = "update" if readme_path.exists() else "create"
+                print(f"  Would {action}: {readme_path}")
                 print(f"  Content preview: {readme_content[:100]}...")
             else:
+                # Create backup of existing README if it exists
+                is_update = readme_path.exists()
+                if is_update and not args.no_backup:
+                    backup_path = folder_path / "README.md.backup"
+                    try:
+                        import shutil
+                        shutil.copy2(readme_path, backup_path)
+                        print(f"  Created backup: {backup_path}")
+                    except Exception as e:
+                        print(f"  Warning: Could not create backup: {e}")
+                
                 readme_path.write_text(readme_content, encoding='utf-8')
-                print(f"  Generated: {readme_path}")
+                action = "Updated" if is_update else "Generated"
+                print(f"  {action}: {readme_path}")
                 
         except Exception as e:
             print(f"  Error processing {folder_path}: {e}")

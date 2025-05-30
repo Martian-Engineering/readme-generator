@@ -38,6 +38,15 @@ The algorithm processes directories in dependency order:
 
 This ensures that when generating a README for a parent folder, it can intelligently reference and summarize the documentation already created for its subdirectories.
 
+### Content Preservation
+
+When updating existing READMEs, the tool:
+- **Preserves all existing information** - no content is lost during updates
+- **Reorganizes and enhances** - improves structure while maintaining all details
+- **Merges seamlessly** - combines existing content with new code analysis
+- **Creates backups** - saves original files as `README.md.backup` before updates
+- **Handles conflicts** - includes both existing explanations and new analysis when they differ
+
 ### 3. DSPy-Powered Analysis
 
 The tool leverages DSPy's declarative AI framework for sophisticated code analysis:
@@ -99,6 +108,18 @@ Specify a different language model:
 uv run generate_readmes.py /path/to/your/project --model gpt-4
 ```
 
+### Updating Existing READMEs
+
+The tool automatically preserves existing README content when updating:
+
+```bash
+# Updates existing READMEs while preserving all content
+uv run generate_readmes.py /path/to/existing/project
+
+# Skip creating backup files
+uv run generate_readmes.py /path/to/existing/project --no-backup
+```
+
 ### Example Usage
 
 ```bash
@@ -110,6 +131,9 @@ uv run generate_readmes.py ~/my-react-app --dry-run
 
 # Use GPT-4 for higher quality analysis
 uv run generate_readmes.py ~/my-complex-project --model gpt-4
+
+# Update existing documentation without losing content
+uv run generate_readmes.py ~/existing-project --model gpt-4
 ```
 
 ## Configuration
