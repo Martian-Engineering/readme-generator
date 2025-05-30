@@ -154,7 +154,7 @@ class READMEModule(dspy.Module):
             ])
         
         if self.append_only and existing_readme:
-            # Generate only new content to append
+            # In append-only mode with existing README, generate new content to append
             result = self.generate_readme(
                 folder_tree=folder_tree,
                 folder_name=folder_path.name,
@@ -170,15 +170,27 @@ class READMEModule(dspy.Module):
             else:
                 return existing_readme
         else:
-            # Generate complete README (existing behavior)
-            readme = self.generate_readme(
-                folder_tree=folder_tree,
-                folder_name=folder_path.name,
-                existing_readme=existing_readme,
-                subfolder_readmes=subfolder_content
-            )
-            
-            return readme.readme_content
+            # For new files or non-append mode, use the enhanced generator
+            if not self.append_only:
+                # Use enhanced generator
+                enhanced_gen = dspy.ChainOfThought(EnhancedREADMEGenerator)
+                result = enhanced_gen(
+                    folder_tree=folder_tree,
+                    folder_name=folder_path.name,
+                    existing_readme=existing_readme,
+                    subfolder_readmes=subfolder_content
+                )
+                return result.readme_content
+            else:
+                # Append mode but no existing README - create a new one
+                enhanced_gen = dspy.ChainOfThought(EnhancedREADMEGenerator)
+                result = enhanced_gen(
+                    folder_tree=folder_tree,
+                    folder_name=folder_path.name,
+                    existing_readme="",
+                    subfolder_readmes=subfolder_content
+                )
+                return result.readme_content
     
     def _generate_folder_tree(self, folder_path: Path, max_depth: int = 3, current_depth: int = 0) -> str:
         """Generate a tree-like representation of the folder structure."""
