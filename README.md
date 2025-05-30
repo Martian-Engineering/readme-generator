@@ -40,12 +40,19 @@ This ensures that when generating a README for a parent folder, it can intellige
 
 ### Content Preservation
 
-When updating existing READMEs, the tool:
-- **Preserves all existing information** - no content is lost during updates
-- **Reorganizes and enhances** - improves structure while maintaining all details
-- **Merges seamlessly** - combines existing content with new code analysis
-- **Creates backups** - saves original files as `README.md.backup` before updates
-- **Handles conflicts** - includes both existing explanations and new analysis when they differ
+The tool offers two approaches for existing README files:
+
+**Enhanced Mode (default):**
+- Preserves all existing information while reorganizing for better structure
+- Merges existing content with new code analysis
+- May reformat and reorganize sections for consistency
+- Creates backups before making changes
+
+**Append-Only Mode (`--append-only`):**
+- **Guaranteed safety** - never modifies existing content
+- Only adds new sections that don't exist in the current README
+- Existing text remains completely unchanged
+- Perfect for incrementally improving documentation without any risk
 
 ### 3. DSPy-Powered Analysis
 
@@ -110,14 +117,24 @@ uv run generate_readmes.py /path/to/your/project --model gpt-4
 
 ### Updating Existing READMEs
 
-The tool automatically preserves existing README content when updating:
+The tool offers two modes for handling existing README files:
 
+**Enhanced Mode (default):**
 ```bash
-# Updates existing READMEs while preserving all content
+# Preserves and reorganizes existing content with new analysis
 uv run generate_readmes.py /path/to/existing/project
 
 # Skip creating backup files
 uv run generate_readmes.py /path/to/existing/project --no-backup
+```
+
+**Append-Only Mode (safest):**
+```bash
+# Only adds new sections, never modifies existing content
+uv run generate_readmes.py /path/to/existing/project --append-only
+
+# Combine with other options
+uv run generate_readmes.py /path/to/existing/project --append-only --no-backup
 ```
 
 ### Example Usage

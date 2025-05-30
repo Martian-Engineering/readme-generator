@@ -73,12 +73,62 @@ Return only the completed `README.md` content—no extra commentary, no outer ma
     readme_content: str = dspy.OutputField(desc="Complete README.md content preserving all existing information while adding new insights")
 
 
+class AppendOnlyREADMEGenerator(dspy.Signature):
+    """You are an expert technical writer specializing in clear, comprehensive documentation.
+
+**Task**  
+Generate ONLY NEW SECTIONS to append to an existing README.md file.
+
+**CRITICAL REQUIREMENT - APPEND-ONLY MODE**
+You must ONLY generate new content to be appended to the existing README.
+- DO NOT modify, rewrite, or reorganize any existing content
+- DO NOT repeat any information already present in the existing README
+- ONLY create new sections that add value and don't duplicate existing information
+- Focus on gaps in the existing documentation based on the code analysis
+
+**What to generate (only if missing from existing README)**
+
+1. **Code Analysis Section** – if the existing README lacks technical details about the codebase
+2. **API Documentation** – if there are public APIs not documented
+3. **Architecture Overview** – if the code structure isn't explained
+4. **Dependencies & Requirements** – if missing or incomplete
+5. **Development Setup** – if build/dev instructions are missing
+6. **Testing Instructions** – if test guidance is absent
+7. **Deployment Notes** – if deployment info is missing
+8. **Performance Notes** – if there are performance considerations
+9. **Security Considerations** – if relevant security info is missing
+10. **Troubleshooting** – if common issues aren't documented
+11. **File Structure Analysis** – detailed breakdown of what each file/folder does
+
+**Formatting rules**
+
+* Use GitHub-flavored Markdown
+* Start each new section with ## (second-level heading)
+* Add clear separation between sections
+* Use consistent formatting with existing README style
+* Include proper code blocks with language tags
+
+**Output**  
+Return only the NEW content to be appended—no existing content, no modifications to existing sections."""
+    
+    folder_tree: str = dspy.InputField(desc="Complete folder structure showing all files and subfolders")
+    folder_name: str = dspy.InputField(desc="Name of the folder being analyzed")
+    existing_readme: str = dspy.InputField(desc="Existing README content that must not be modified")
+    subfolder_readmes: str = dspy.InputField(desc="Content from README files of subfolders for context")
+    
+    new_content: str = dspy.OutputField(desc="Only new sections to append to the existing README")
+
+
 class READMEModule(dspy.Module):
     """DSPy module for generating README files using expert technical writing."""
     
-    def __init__(self):
+    def __init__(self, append_only: bool = False):
         super().__init__()
-        self.generate_readme = dspy.ChainOfThought(EnhancedREADMEGenerator)
+        self.append_only = append_only
+        if append_only:
+            self.generate_readme = dspy.ChainOfThought(AppendOnlyREADMEGenerator)
+        else:
+            self.generate_readme = dspy.ChainOfThought(EnhancedREADMEGenerator)
     
     def forward(self, folder_path: Path, subfolder_readmes: Dict[str, str]) -> str:
         # Generate folder tree structure
@@ -90,7 +140,8 @@ class READMEModule(dspy.Module):
         if readme_path.exists():
             try:
                 existing_readme = readme_path.read_text(encoding='utf-8')
-                print(f"  Found existing README, preserving {len(existing_readme)} characters of content")
+                mode_text = "appending to" if self.append_only else "preserving"
+                print(f"  Found existing README, {mode_text} {len(existing_readme)} characters of content")
             except Exception as e:
                 print(f"  Warning: Could not read existing README: {e}")
         
@@ -102,15 +153,32 @@ class READMEModule(dspy.Module):
                 for subfolder, content in subfolder_readmes.items()
             ])
         
-        # Generate the README
-        readme = self.generate_readme(
-            folder_tree=folder_tree,
-            folder_name=folder_path.name,
-            existing_readme=existing_readme,
-            subfolder_readmes=subfolder_content
-        )
-        
-        return readme.readme_content
+        if self.append_only and existing_readme:
+            # Generate only new content to append
+            result = self.generate_readme(
+                folder_tree=folder_tree,
+                folder_name=folder_path.name,
+                existing_readme=existing_readme,
+                subfolder_readmes=subfolder_content
+            )
+            
+            # Combine existing README with new content
+            new_content = result.new_content.strip()
+            if new_content:
+                # Add proper separation
+                return existing_readme.rstrip() + "\n\n" + new_content
+            else:
+                return existing_readme
+        else:
+            # Generate complete README (existing behavior)
+            readme = self.generate_readme(
+                folder_tree=folder_tree,
+                folder_name=folder_path.name,
+                existing_readme=existing_readme,
+                subfolder_readmes=subfolder_content
+            )
+            
+            return readme.readme_content
     
     def _generate_folder_tree(self, folder_path: Path, max_depth: int = 3, current_depth: int = 0) -> str:
         """Generate a tree-like representation of the folder structure."""
@@ -258,10 +326,10 @@ def main():
         description="Generate README.md files for source folders using DSPy",
         epilog="""
 Behavior with existing READMEs:
-- Existing README content is preserved and incorporated
-- No information is lost during the update process
-- Content is reorganized and enhanced with new analysis
+- Default: Existing content is preserved and enhanced (may reorganize)
+- --append-only: Only adds new sections, never modifies existing content
 - Backup files (README.md.backup) are created before updates
+- Use --append-only for maximum safety when updating existing documentation
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -269,6 +337,7 @@ Behavior with existing READMEs:
     parser.add_argument("--model", default="gpt-3.5-turbo", help="LLM model to use")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be done without writing files")
     parser.add_argument("--no-backup", action="store_true", help="Skip creating backup files when updating existing READMEs")
+    parser.add_argument("--append-only", action="store_true", help="Only append new sections to existing READMEs, never modify existing content")
     
     args = parser.parse_args()
     
@@ -291,7 +360,7 @@ Behavior with existing READMEs:
         sys.exit(1)
     
     # Initialize the README generator module
-    readme_module = READMEModule()
+    readme_module = READMEModule(append_only=args.append_only)
     
     # Find all source folders (bottom-up order)
     source_folders = find_source_folders(root_path)
@@ -320,7 +389,10 @@ Behavior with existing READMEs:
             readme_path = folder_path / "README.md"
             
             if args.dry_run:
-                action = "update" if readme_path.exists() else "create"
+                if readme_path.exists():
+                    action = "append to" if args.append_only else "update"
+                else:
+                    action = "create"
                 print(f"  Would {action}: {readme_path}")
                 print(f"  Content preview: {readme_content[:100]}...")
             else:
@@ -336,7 +408,10 @@ Behavior with existing READMEs:
                         print(f"  Warning: Could not create backup: {e}")
                 
                 readme_path.write_text(readme_content, encoding='utf-8')
-                action = "Updated" if is_update else "Generated"
+                if is_update:
+                    action = "Appended to" if args.append_only else "Updated"
+                else:
+                    action = "Generated"
                 print(f"  {action}: {readme_path}")
                 
         except Exception as e:
