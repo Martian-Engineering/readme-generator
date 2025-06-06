@@ -8,7 +8,7 @@ import argparse
 import os
 import sys
 from pathlib import Path
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Optional
 import dspy
 
 
@@ -21,15 +21,15 @@ class READMEGenerator(dspy.Signature):
     
     title: str = dspy.OutputField(desc="Project title and one-sentence tagline")
     overview: str = dspy.OutputField(desc="1-2 paragraph overview explaining what the project is and why it exists")
-    badges: str = dspy.OutputField(desc="Relevant badges for the project (can be empty if none needed)")
+    badges: Optional[str] = dspy.OutputField(desc="Relevant badges for the project (can be empty if none needed)")
     features: str = dspy.OutputField(desc="3-7 bullet points of key features or components")
     prerequisites: str = dspy.OutputField(desc="Required languages, runtimes, and package managers")
     installation: str = dspy.OutputField(desc="Step-by-step installation instructions")
     usage: str = dspy.OutputField(desc="Usage examples with code snippets")
-    file_structure: str = dspy.OutputField(desc="Overview of important files and folders")
-    contributing: str = dspy.OutputField(desc="Contributing guidelines and process")
+    file_structure: Optional[str] = dspy.OutputField(desc="Overview of important files and folders")
+    contributing: Optional[str] = dspy.OutputField(desc="Contributing guidelines and process")
     license_info: str = dspy.OutputField(desc="License information")
-    acknowledgments: str = dspy.OutputField(desc="Acknowledgments and references (can be empty)")
+    acknowledgments: Optional[str] = dspy.OutputField(desc="Acknowledgments and references (can be empty)")
 
 
 class AppendOnlyREADMEGenerator(dspy.Signature):
@@ -39,14 +39,14 @@ class AppendOnlyREADMEGenerator(dspy.Signature):
     existing_readme: str = dspy.InputField(desc="Existing README content that must not be modified")
     subfolder_readmes: str = dspy.InputField(desc="Content from README files of subfolders for context")
     
-    api_docs: str = dspy.OutputField(desc="API documentation if public APIs exist (empty if not needed)")
-    architecture: str = dspy.OutputField(desc="Architecture overview if code structure needs explanation (empty if not needed)")
-    development: str = dspy.OutputField(desc="Development setup instructions if missing (empty if not needed)")
-    testing: str = dspy.OutputField(desc="Testing instructions if absent (empty if not needed)")
-    deployment: str = dspy.OutputField(desc="Deployment notes if missing (empty if not needed)")
-    performance: str = dspy.OutputField(desc="Performance considerations if relevant (empty if not needed)")
-    security: str = dspy.OutputField(desc="Security considerations if relevant (empty if not needed)")
-    troubleshooting: str = dspy.OutputField(desc="Troubleshooting guide if needed (empty if not needed)")
+    api_docs: Optional[str] = dspy.OutputField(desc="API documentation if public APIs exist (empty if not needed)")
+    architecture: Optional[str] = dspy.OutputField(desc="Architecture overview if code structure needs explanation (empty if not needed)")
+    development: Optional[str] = dspy.OutputField(desc="Development setup instructions if missing (empty if not needed)")
+    testing: Optional[str] = dspy.OutputField(desc="Testing instructions if absent (empty if not needed)")
+    deployment: Optional[str] = dspy.OutputField(desc="Deployment notes if missing (empty if not needed)")
+    performance: Optional[str] = dspy.OutputField(desc="Performance considerations if relevant (empty if not needed)")
+    security: Optional[str] = dspy.OutputField(desc="Security considerations if relevant (empty if not needed)")
+    troubleshooting: Optional[str] = dspy.OutputField(desc="Troubleshooting guide if needed (empty if not needed)")
 
 
 class READMEModule(dspy.Module):
@@ -106,7 +106,7 @@ class READMEModule(dspy.Module):
             }
             
             for title, content in sections.items():
-                if content.strip():
+                if content and content.strip():
                     additional_sections.append(f"## {title}\n\n{content.strip()}")
             
             # Combine existing README with new sections
@@ -136,7 +136,7 @@ class READMEModule(dspy.Module):
             sections.append(f"# {result.title.strip()}")
         
         # Badges (if present)
-        if result.badges.strip():
+        if result.badges and result.badges.strip():
             sections.append(result.badges.strip())
         
         # Overview
@@ -160,11 +160,11 @@ class READMEModule(dspy.Module):
             sections.append(f"## Usage\n\n{result.usage.strip()}")
         
         # File Structure
-        if result.file_structure.strip():
+        if result.file_structure and result.file_structure.strip():
             sections.append(f"## File Structure\n\n{result.file_structure.strip()}")
         
         # Contributing
-        if result.contributing.strip():
+        if result.contributing and result.contributing.strip():
             sections.append(f"## Contributing\n\n{result.contributing.strip()}")
         
         # License
@@ -172,7 +172,7 @@ class READMEModule(dspy.Module):
             sections.append(f"## License\n\n{result.license_info.strip()}")
         
         # Acknowledgments
-        if result.acknowledgments.strip():
+        if result.acknowledgments and result.acknowledgments.strip():
             sections.append(f"## Acknowledgments\n\n{result.acknowledgments.strip()}")
         
         return "\n\n".join(sections)
