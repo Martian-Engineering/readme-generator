@@ -13,114 +13,44 @@ import dspy
 
 
 class READMEGenerator(dspy.Signature):
-    """Generate a comprehensive README.md file for a source code folder using expert technical writing."""
-    folder_tree: str = dspy.InputField(desc="Complete folder structure showing all files and subfolders")
-    folder_name: str = dspy.InputField(desc="Name of the folder being analyzed")
-    subfolder_readmes: str = dspy.InputField(desc="Content from README files of subfolders for context")
-    
-    readme_content: str = dspy.OutputField(desc="Complete README.md content following technical writing best practices")
-
-
-class EnhancedREADMEGenerator(dspy.Signature):
-    """You are an expert technical writer specializing in clear, comprehensive documentation.
-
-**Task**  
-Generate a crisp, well-structured `README.md` for the folder described below.
-
-**CRITICAL REQUIREMENT - PRESERVE EXISTING CONTENT**
-If an existing README is provided, you MUST:
-- PRESERVE ALL existing information, details, explanations, and content
-- NEVER remove, omit, or lose any information from the existing README
-- You may reorganize, reformat, and improve the structure and clarity
-- You may add new sections and information based on code analysis
-- Merge existing content with new analysis seamlessly
-- If existing content conflicts with code analysis, include both perspectives
-
-**What to include**
-
-1. **Project title & one-sentence tagline** – infer from folder name, main file, or existing README.  
-2. **Overview** – 1-2 short paragraphs explaining what the project is, why it exists, and the core problem it solves. MERGE with existing overview if present.  
-3. **Badges** – preserve existing badges and add placeholders for missing ones.  
-4. **Table of Contents** – generate only if the README will have four or more second-level headings.  
-5. **Features / key components** – 3-7 concise bullet points. MERGE with existing features.  
-6. **Quick start**  
-   * *Prerequisites* (languages, runtimes, package managers). PRESERVE existing prerequisites.  
-   * *Installation* (clone, install, build/run). PRESERVE existing installation steps.  
-7. **Usage examples** – at least one minimal CLI or code snippet. PRESERVE all existing examples.  
-8. **Folder / file overview** – one-line purpose for each top-level item. MERGE with existing descriptions.  
-9. **Contributing** – standard fork/branch/PR flow. PRESERVE existing contribution guidelines.  
-10. **License** – detect license file or PRESERVE existing license information.  
-11. **Acknowledgements / references** – PRESERVE all existing acknowledgements and references.  
-12. **Any existing sections** – PRESERVE all custom sections, configuration details, deployment instructions, etc.
-
-**Formatting rules**
-
-* Use GitHub-flavored Markdown.  
-* Code blocks wrapped in triple backticks with language tags.  
-* Consistent heading levels (`#`, `##`, `###`).  
-* Wrap lines at ≤ 100 chars.  
-* Be succinct; avoid filler words.
-* PRESERVE formatting of existing code examples and structured content.
-
-**Output**  
-Return only the completed `README.md` content—no extra commentary, no outer markdown fences."""
-    
+    """Generate structured README sections for a source code folder."""
     folder_tree: str = dspy.InputField(desc="Complete folder structure showing all files and subfolders")
     folder_name: str = dspy.InputField(desc="Name of the folder being analyzed")
     existing_readme: str = dspy.InputField(desc="Existing README content to preserve and incorporate (empty if no existing README)")
     subfolder_readmes: str = dspy.InputField(desc="Content from README files of subfolders for context")
     
-    readme_content: str = dspy.OutputField(desc="Complete README.md content preserving all existing information while adding new insights")
+    title: str = dspy.OutputField(desc="Project title and one-sentence tagline")
+    overview: str = dspy.OutputField(desc="1-2 paragraph overview explaining what the project is and why it exists")
+    badges: str = dspy.OutputField(desc="Relevant badges for the project (can be empty if none needed)")
+    features: str = dspy.OutputField(desc="3-7 bullet points of key features or components")
+    prerequisites: str = dspy.OutputField(desc="Required languages, runtimes, and package managers")
+    installation: str = dspy.OutputField(desc="Step-by-step installation instructions")
+    usage: str = dspy.OutputField(desc="Usage examples with code snippets")
+    file_structure: str = dspy.OutputField(desc="Overview of important files and folders")
+    contributing: str = dspy.OutputField(desc="Contributing guidelines and process")
+    license_info: str = dspy.OutputField(desc="License information")
+    acknowledgments: str = dspy.OutputField(desc="Acknowledgments and references (can be empty)")
 
 
 class AppendOnlyREADMEGenerator(dspy.Signature):
-    """You are an expert technical writer specializing in clear, comprehensive documentation.
-
-**Task**  
-Generate ONLY NEW SECTIONS to append to an existing README.md file.
-
-**CRITICAL REQUIREMENT - APPEND-ONLY MODE**
-You must ONLY generate new content to be appended to the existing README.
-- DO NOT modify, rewrite, or reorganize any existing content
-- DO NOT repeat any information already present in the existing README
-- ONLY create new sections that add value and don't duplicate existing information
-- Focus on gaps in the existing documentation based on the code analysis
-
-**What to generate (only if missing from existing README)**
-
-1. **Code Analysis Section** – if the existing README lacks technical details about the codebase
-2. **API Documentation** – if there are public APIs not documented
-3. **Architecture Overview** – if the code structure isn't explained
-4. **Dependencies & Requirements** – if missing or incomplete
-5. **Development Setup** – if build/dev instructions are missing
-6. **Testing Instructions** – if test guidance is absent
-7. **Deployment Notes** – if deployment info is missing
-8. **Performance Notes** – if there are performance considerations
-9. **Security Considerations** – if relevant security info is missing
-10. **Troubleshooting** – if common issues aren't documented
-11. **File Structure Analysis** – detailed breakdown of what each file/folder does
-
-**Formatting rules**
-
-* Use GitHub-flavored Markdown
-* Start each new section with ## (second-level heading)
-* Add clear separation between sections
-* Use consistent formatting with existing README style
-* Include proper code blocks with language tags
-
-**Output**  
-Return only the NEW content to be appended—no existing content, no modifications to existing sections."""
-    
+    """Generate additional README sections to append to existing content."""
     folder_tree: str = dspy.InputField(desc="Complete folder structure showing all files and subfolders")
     folder_name: str = dspy.InputField(desc="Name of the folder being analyzed")
     existing_readme: str = dspy.InputField(desc="Existing README content that must not be modified")
     subfolder_readmes: str = dspy.InputField(desc="Content from README files of subfolders for context")
     
-    new_content: str = dspy.OutputField(desc="Only new sections to append to the existing README")
+    api_docs: str = dspy.OutputField(desc="API documentation if public APIs exist (empty if not needed)")
+    architecture: str = dspy.OutputField(desc="Architecture overview if code structure needs explanation (empty if not needed)")
+    development: str = dspy.OutputField(desc="Development setup instructions if missing (empty if not needed)")
+    testing: str = dspy.OutputField(desc="Testing instructions if absent (empty if not needed)")
+    deployment: str = dspy.OutputField(desc="Deployment notes if missing (empty if not needed)")
+    performance: str = dspy.OutputField(desc="Performance considerations if relevant (empty if not needed)")
+    security: str = dspy.OutputField(desc="Security considerations if relevant (empty if not needed)")
+    troubleshooting: str = dspy.OutputField(desc="Troubleshooting guide if needed (empty if not needed)")
 
 
 class READMEModule(dspy.Module):
-    """DSPy module for generating README files using expert technical writing."""
+    """DSPy module for generating README files with structured output fields."""
     
     def __init__(self, append_only: bool = False):
         super().__init__()
@@ -128,7 +58,7 @@ class READMEModule(dspy.Module):
         if append_only:
             self.generate_readme = dspy.ChainOfThought(AppendOnlyREADMEGenerator)
         else:
-            self.generate_readme = dspy.ChainOfThought(EnhancedREADMEGenerator)
+            self.generate_readme = dspy.ChainOfThought(READMEGenerator)
     
     def forward(self, folder_path: Path, subfolder_readmes: Dict[str, str]) -> str:
         # Generate folder tree structure
@@ -154,7 +84,7 @@ class READMEModule(dspy.Module):
             ])
         
         if self.append_only and existing_readme:
-            # In append-only mode with existing README, generate new content to append
+            # In append-only mode with existing README, generate additional sections
             result = self.generate_readme(
                 folder_tree=folder_tree,
                 folder_name=folder_path.name,
@@ -162,35 +92,90 @@ class READMEModule(dspy.Module):
                 subfolder_readmes=subfolder_content
             )
             
-            # Combine existing README with new content
-            new_content = result.new_content.strip()
-            if new_content:
-                # Add proper separation
+            # Collect non-empty additional sections
+            additional_sections = []
+            sections = {
+                "API Documentation": result.api_docs,
+                "Architecture": result.architecture,
+                "Development Setup": result.development,
+                "Testing": result.testing,
+                "Deployment": result.deployment,
+                "Performance": result.performance,
+                "Security": result.security,
+                "Troubleshooting": result.troubleshooting
+            }
+            
+            for title, content in sections.items():
+                if content.strip():
+                    additional_sections.append(f"## {title}\n\n{content.strip()}")
+            
+            # Combine existing README with new sections
+            if additional_sections:
+                new_content = "\n\n".join(additional_sections)
                 return existing_readme.rstrip() + "\n\n" + new_content
             else:
                 return existing_readme
         else:
-            # For new files or non-append mode, use the enhanced generator
-            if not self.append_only:
-                # Use enhanced generator
-                enhanced_gen = dspy.ChainOfThought(EnhancedREADMEGenerator)
-                result = enhanced_gen(
-                    folder_tree=folder_tree,
-                    folder_name=folder_path.name,
-                    existing_readme=existing_readme,
-                    subfolder_readmes=subfolder_content
-                )
-                return result.readme_content
-            else:
-                # Append mode but no existing README - create a new one
-                enhanced_gen = dspy.ChainOfThought(EnhancedREADMEGenerator)
-                result = enhanced_gen(
-                    folder_tree=folder_tree,
-                    folder_name=folder_path.name,
-                    existing_readme="",
-                    subfolder_readmes=subfolder_content
-                )
-                return result.readme_content
+            # Generate complete README using structured approach
+            result = self.generate_readme(
+                folder_tree=folder_tree,
+                folder_name=folder_path.name,
+                existing_readme=existing_readme,
+                subfolder_readmes=subfolder_content
+            )
+            
+            # Assemble complete README from structured fields
+            return self._assemble_readme(result)
+    
+    def _assemble_readme(self, result) -> str:
+        """Assemble a complete README from structured output fields."""
+        sections = []
+        
+        # Title (always first)
+        if result.title.strip():
+            sections.append(f"# {result.title.strip()}")
+        
+        # Badges (if present)
+        if result.badges.strip():
+            sections.append(result.badges.strip())
+        
+        # Overview
+        if result.overview.strip():
+            sections.append(f"## Overview\n\n{result.overview.strip()}")
+        
+        # Features
+        if result.features.strip():
+            sections.append(f"## Features\n\n{result.features.strip()}")
+        
+        # Prerequisites
+        if result.prerequisites.strip():
+            sections.append(f"## Prerequisites\n\n{result.prerequisites.strip()}")
+        
+        # Installation
+        if result.installation.strip():
+            sections.append(f"## Installation\n\n{result.installation.strip()}")
+        
+        # Usage
+        if result.usage.strip():
+            sections.append(f"## Usage\n\n{result.usage.strip()}")
+        
+        # File Structure
+        if result.file_structure.strip():
+            sections.append(f"## File Structure\n\n{result.file_structure.strip()}")
+        
+        # Contributing
+        if result.contributing.strip():
+            sections.append(f"## Contributing\n\n{result.contributing.strip()}")
+        
+        # License
+        if result.license_info.strip():
+            sections.append(f"## License\n\n{result.license_info.strip()}")
+        
+        # Acknowledgments
+        if result.acknowledgments.strip():
+            sections.append(f"## Acknowledgments\n\n{result.acknowledgments.strip()}")
+        
+        return "\n\n".join(sections)
     
     def _generate_folder_tree(self, folder_path: Path, max_depth: int = 3, current_depth: int = 0) -> str:
         """Generate a tree-like representation of the folder structure."""
